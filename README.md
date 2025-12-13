@@ -2,7 +2,7 @@
 A simple 32-bit RISC-V (RV32I) CPU written in Verilog
 
 ## Repository Structure
-
+``` 
 rv32_cpu/
 ├── .gitignore
 ├── README.md
@@ -17,3 +17,4 @@ rv32_cpu/
 │ └── sim/ # Simulation scripts / Makefile
 │
 └── docs/ # Architecture notes and diagrams
+```
