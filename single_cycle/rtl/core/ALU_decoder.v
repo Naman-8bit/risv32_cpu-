@@ -18,8 +18,10 @@ module ALU_decoder (
 //  10   |  111   |        x         |    010    | and
 
 // decoder uses op5 and funct7 to determine add or sub
+// case statment and ternary operator used as they are perfectly synthesizable
 
 always@(*) begin
+    ALU_CONTROL=3'b000;//no latches
     case(ALU_op)
         2'b00: ALU_CONTROL=3'b000;
         2'b01: ALU_CONTROL=3'b001;
@@ -31,6 +33,7 @@ always@(*) begin
                 3'b111: ALU_CONTROL=3'b010;
             endcase
         end
+        default: ALU_CONTROL=3'b000;
     endcase
 end
 
