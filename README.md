@@ -3,18 +3,33 @@ A simple 32-bit RISC-V (RV32I) CPU written in Verilog
 
 ## Repository Structure
 ``` 
-rv32_cpu/
-├── .gitignore
-├── README.md
-├── LICENSE
+single_cycle/
+├── rtl/
+│   ├── core/
+│   │   ├── program_counter.v
+│   │   ├── instr_fetch.v
+│   │   ├── decoder.v
+│   │   ├── control_unit.v
+│   │   ├── alu.v
+│   │   ├── regfile.v        
+│   │   └── core_top.v       
+│   │
+│   ├── memory/
+│   │   ├── instr_mem.v      
+│   │   └── data_mem.v
+│   │
+│   └── top.v                
 │
-├── single_cycle/
-│ ├── rtl/ # Synthesizable RTL
-│ │ ├── core/ # ALU, regfile, control, datapath
-│ │ └── rv32_cpu.v
-│ │
-│ ├── tb/ # Testbenches
-│ └── sim/ # Simulation scripts / Makefile
+├── programs/
+│   ├── program.hex
+│   └── test.S
 │
-└── docs/ # Architecture notes and diagrams
+├── tb/
+│   └── core_tb.v
+│
+├── docs/
+│   └── architecture.md
+│
+└── README.md
+
 ```
