@@ -3,7 +3,10 @@ module single_cycle(
     input rst
 );
 
-    //1.wires needed
+    //-------------------------------------------------------------------------------------------------
+    // 1> WIRES NEEDED
+    // 
+    // ------------------------------------------------------------------------------------------------
     wire[31:0] pc;
     wire[31:0] pc_next;
 
@@ -13,29 +16,59 @@ module single_cycle(
     wire[11:0] imm;
     wire [4:0] rd;
     wire [4:0] rs2;
-    wire [31:0] RD2;
 
     wire[31:0] SrcA;//for ALU input
     wire[31:0] SrcB;//for ALU input
     wire[31:0] ALU_result;
-    wire[2:0] ALU_ctrl;
-    // danger temp and remove it later
-    assign ALU_ctrl = 3'b000;
+    reg[31:0] ImmExtend;
 
     wire[31:0] Read_data;
-    wire Reg_write;
+    
     // danger: temp
-    assign Reg_write=1'b1;
+    // assign Reg_write=1'b1;
 
     wire[31:0] PCPlus4;
     assign PCPlus4 = pc + 32'd4;
 
-    //2.instantiate blocks and connections
+    wire [31:0] Write_data;
+
+    //wire for control signals from the control unit
+    wire ALU_src;
+    wire[2:0] ALU_ctrl;
+    wire Result_src;
+    wire Reg_write;
+    wire[1:0] ImmSrc;
+    wire MemWrite;
+    wire PCSrc;
+    wire[1:0] ALU_op;
+
+    wire Zero;
+
+    wire[6:0] op;
+    assign op = instr[6:0];
+
+    wire[2:0] funct3;
+    assign funct3= instr[14:12];
+
+    wire funct7_5;
+    assign funct7_5= instr[30];
+
+    wire[31:0] PCtarget;
+    assign PCtarget= pc+ImmExtend;
+
+    // mux for pc_next
+    assign pc_next=(PCSrc)? PCtarget : PCPlus4 ;
+
+    //-------------------------------------------------------------------------------------------------
+    // 2> INSTANTIATION AND CONNECTIONS
+    // 
+    // ------------------------------------------------------------------------------------------------
+
     program_counter pc1(
         .clk(clk),
         .rst(rst),
         .pc(pc),
-        .pc_next(PCPlus4) // warning : temporary has to be replaced by mux selecting bw pc target and pc plus 4
+        .pc_next(pc_next) // warning : temporary has to be replaced by mux selecting bw pc target and pc plus 4
     );
 
     Instruction_memory instr_mem(
@@ -52,25 +85,30 @@ module single_cycle(
         .clk(clk),
         .rst(rst),
         .WE3(Reg_write),
-        .WD3(Read_data), 
+        .WD3(Result), 
         .A1(rs1),
         .A2(rs2),
         .A3(rd),
         .RD1(SrcA),
-        .RD2(RD2)
+        .RD2(Write_data)
     );
 
     extend ext(
         .instr(instr),
-        .imm_ext(SrcB)
+        .imm_src(ImmSrc),
+        .imm_ext(ImmExtend)
     );
 
+    // mux for SrcB
+    assign SrcB = (ALU_src)? ImmExtend : Write_data ;
+    wire[31:0] Result;
+    assign Result= (Result_src)? Read_data : ALU_result ;
 
     ALU alu(
         .A(SrcA),
         .B(SrcB),
         .ALU_ctrl(ALU_ctrl),
-        .Zero(),
+        .Zero(Zero),
         .Carry(),
         .Negative(),
         .oVerflow(),
@@ -79,10 +117,38 @@ module single_cycle(
 
     data_Memory data_mem(
         .CLK(clk),
-        .WE(1'b0),
+        .WE(MemWrite),
         .A(ALU_result),
-        .WD(32'd0),
+        .WD(Write_data),
         .RD3(Read_data)
+    );
+
+    // wire ALU_src;
+    // wire[2:0] ALU_ctrl;
+    // wire Result_src;
+    // wire Reg_write;
+    // wire[1:0] ImmSrc;
+    // wire MemWrite;
+    // wire PCSrc;
+
+    Main_decoder Main1(
+        .Zero(Zero),
+        .op(op),  
+        .PCSrc(PCSrc),
+        .ResultSrc(Result_src),
+        .ALUSrc(ALU_src),
+        .ImmSrc(ImmSrc),
+        .ALU_op(ALU_op),
+        .RegWrite(Reg_write),
+        .MemWrite(MemWrite)
+    );
+
+    ALU_decoder ALU_decoder1(
+        .ALU_op(ALU_op),
+        .op5(op[5]),
+        .funct3(funct3),
+        .funct7_5(funct7_5),
+        .ALU_CONTROL(ALU_ctrl)
     );
 
 endmodule

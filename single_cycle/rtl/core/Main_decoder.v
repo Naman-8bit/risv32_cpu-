@@ -35,12 +35,15 @@ module Main_decoder (
     OP_LW   = 7'b0000011,
     OP_SW   = 7'b0100011,
     OP_R    = 7'b0110011,
+    OP_I    = 7'b0010011,
     OP_BEQ  = 7'b1100011;
+    
 
     wire isLW  = (op == OP_LW);
     wire isSW  = (op == OP_SW);
     wire isR   = (op == OP_R);
     wire isBEQ = (op == OP_BEQ);
+    wire isI = (op == OP_I);
 
     always @(*) begin
         // to avoid latches
@@ -71,6 +74,12 @@ module Main_decoder (
         else if (isR) begin
             RegWrite = 1;
             ALU_op    = 2'b10;
+        end
+        else if (isI) begin
+            RegWrite = 1;
+            ALUSrc   = 1;
+            ALU_op   = 2'b10;   // use funct3
+            ImmSrc   = 2'b00;  // I-type immediate
         end
     end
     

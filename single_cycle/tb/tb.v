@@ -5,36 +5,54 @@ module tb;
     reg clk = 0;
     reg rst = 0;
 
-    // Instantiate DUT
     single_cycle dut(.clk(clk), .rst(rst));
 
-    // 10 ns clock
     always #5 clk = ~clk;
 
     initial begin
-        $display("\nTime   PC        x1   x2   x3   x4");
-        $display("-----------------------------------");
+        $dumpfile("cpu.vcd");
+        $dumpvars(0, tb);
+        $dumpvars(0, dut);
 
-        // Apply reset
         rst = 0;
-        #20;
-        rst = 1;
+        #20 rst = 1;
 
-        // Run for a few cycles
-        repeat (10) begin
-            @(posedge clk);
-            $display("%4t   %08h   %0d   %0d   %0d   %0d",
-                     $time,
-                     dut.pc,
-                     dut.reg_f.x[1],
-                     dut.reg_f.x[2],
-                     dut.reg_f.x[3],
-                     dut.reg_f.x[4]);
-        end
+        // Run enough cycles
+        repeat (20) @(posedge clk);
 
+        $display("\n--- RISC-V CORE TEST ---");
+
+        check(1, 5);     // addi
+        check(2, 10);    // addi
+        check(3, 15);    // add
+        check(4, 5);     // sub
+        check(5, 0);     // and
+        check(6, 15);    // or
+        check(7, 1);     // slt
+        check(8, 15);    // lw after sw
+        check(9, 0);     // skipped by beq
+        check(10, 123);  // branch target
+
+        $display("\nALL RV32I TESTS PASSED 🎉");
         $finish;
     end
 
+    task check(input int regnum, input int expected);
+        if (dut.reg_f.x[regnum] !== expected) begin
+            $display("FAIL: x%0d = %0d (expected %0d)",
+                     regnum,
+                     dut.reg_f.x[regnum],
+                     expected);
+            $fatal;
+        end
+        else begin
+            $display("PASS: x%0d = %0d", regnum, expected);
+        end
+    endtask
+
 endmodule
+
+
+
 
 
