@@ -54,7 +54,7 @@ iverilog -g2012 -o cpu \
 vvp cpu
 gtkwave cpu.vcd
 ---
-
+```
 ## 🧾 What the Test Program Does
 
 The default `program.hex` verifies:
