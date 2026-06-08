@@ -17,35 +17,39 @@ module tb;
         rst = 0;
         #20 rst = 1;
 
-        // Run enough cycles
-        repeat (20) @(posedge clk);
+        // More cycles needed now (20 instructions)
+        repeat (40) @(posedge clk);
 
         $display("\n--- RISC-V CORE TEST ---");
 
-        check(1, 5);     // addi
-        check(2, 10);    // addi
-        check(3, 15);    // add
-        check(4, 5);     // sub
-        check(5, 0);     // and
-        check(6, 15);    // or
-        check(7, 1);     // slt
-        check(8, 15);    // lw after sw
-        check(9, 0);     // skipped by beq
+        // Original tests
+        check(1,  5);    // addi
+        check(2,  10);   // addi
+        check(3,  15);   // add
+        check(4,  5);    // sub
+        check(5,  0);    // and
+        check(6,  15);   // or
+        check(7,  1);    // slt
+        check(8,  15);   // lw after sw
+        check(9,  0);    // skipped by beq
         check(10, 123);  // branch target
 
-        $display("\nALL RV32I TESTS PASSED 🎉");
+        // JAL tests
+        check(11, 52);   // jal x11: return addr = 48+4
+        check(12, 42);   // jal landed at 60, x12=42
+        check(13, 68);   // jal x13: return addr = 64+4
+        check(14, 77);   // jal landed at 72, x14=77
+
+        $display("\nALL RV32I + JAL TESTS PASSED!");
         $finish;
     end
 
     task check(input int regnum, input int expected);
         if (dut.reg_f.x[regnum] !== expected) begin
             $display("FAIL: x%0d = %0d (expected %0d)",
-                     regnum,
-                     dut.reg_f.x[regnum],
-                     expected);
+                     regnum, dut.reg_f.x[regnum], expected);
             $fatal;
-        end
-        else begin
+        end else begin
             $display("PASS: x%0d = %0d", regnum, expected);
         end
     endtask

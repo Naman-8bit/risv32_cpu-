@@ -1,0 +1,6 @@
+changes made to support jal instruction in the single cycle [8/6/26]
+
+Result src is now  a two bit and PC plus 4 data is recieved by a mux which gets stored as a result 
+extend has to be changed to support the generation of the 21 bit signed immediate number
+new instruction jump added
+Data path changed with now pcsrc logic is branch & zero | jump

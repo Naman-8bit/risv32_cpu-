@@ -2,7 +2,7 @@ module Main_decoder (
     input wire Zero,
     input wire[6:0] op,  
     output wire PCSrc,
-    output reg ResultSrc,
+    output reg[1:0] ResultSrc,
     output reg ALUSrc,
     output reg[1:0] ImmSrc,
     output reg[1:0] ALU_op,
@@ -10,20 +10,26 @@ module Main_decoder (
     output reg MemWrite
 );
     reg Branch;//intermediate wire for the output PCSrc
+    reg Jump;//intermediate for jump instruction
     // Instruction |  Op      | RegWrite | ImmSrc | ALUSrc | MemWrite | ResultSrc | Branch | ALUOp
     // --------------------------------------------------------------------------------------------
-    // lw          | 0000011  |    1     |   00   |   1    |    0     |     1     |   0    |  00
-    // sw          | 0100011  |    0     |   01   |   1    |    1     |     x     |   0    |  00
-    // R-type      | 0110011  |    1     |   xx   |   0    |    0     |     0     |   0    |  10
-    // beq         | 1100011  |    0     |   10   |   0    |    0     |     x     |   1    |  01
+    // lw          | 0000011  |    1     |   00   |   1    |    0     |     01     |   0    |  00
+    // sw          | 0100011  |    0     |   01   |   1    |    1     |     xx     |   0    |  00
+    // R-type      | 0110011  |    1     |   xx   |   0    |    0     |     00     |   0    |  10
+    // beq         | 1100011  |    0     |   10   |   0    |    0     |     xx     |   1    |  01
+    // I type alu  | 0010011  |    1     |   00   |   1    |    0     |     00     |   0    |  10
+    // jal         | 1101111  |    1     |   11   |   x    |    0     |     10     |   0    |  xx and Jump = 1
 
     //using assign here as it it better than case for realising the hardware and the clear truth table here gives easy implementation for it
-    assign PCSrc= (Branch & Zero); //And gate
+    //assign PCSrc= (Branch & Zero); //And gate 
+    // new for jump
+    assign PCSrc= ((Branch & Zero)|Jump); 
+
 
     // assign ResultSrc= ~(op[6]|op[5]); //Nor gate
     // not using assign statement like this as it may be issue later while pipelining or ISA extension cause it may break later so its much better to do it by instruction identity
     //synthesizers automatically optimize the hardware so better to let synth do it
-
+    
     // instuctions implemented below (easy to extend later if needed)
 
     // A good practice while designing controllers is to decode it by instructions not by bit logic or conincidence
@@ -31,34 +37,39 @@ module Main_decoder (
     //avoid latches by assigning defaults
     //local param is good to make stuff more readable (this is used in FSM's)
 
+    // update for jal 
+    // in processor the instruction calculates the value of PC_NEXT by adding the PC to the 21 bit signed number encoded in the instruction
     localparam [6:0]
     OP_LW   = 7'b0000011,
     OP_SW   = 7'b0100011,
     OP_R    = 7'b0110011,
     OP_I    = 7'b0010011,
-    OP_BEQ  = 7'b1100011;
-    
+    OP_BEQ  = 7'b1100011,
+    //new jal instruction opcode
+    OP_Jal  = 7'b1101111;
 
     wire isLW  = (op == OP_LW);
     wire isSW  = (op == OP_SW);
     wire isR   = (op == OP_R);
     wire isBEQ = (op == OP_BEQ);
     wire isI = (op == OP_I);
+    //jal
+    wire isJal = (op == OP_Jal);
 
     always @(*) begin
         // to avoid latches
         RegWrite  = 0;
         MemWrite  = 0;
-        ResultSrc = 0;
+        ResultSrc = 2'b00;
         Branch=0;
         ALUSrc    = 0;
         ALU_op     = 2'b00;
         ImmSrc    = 2'b00;
-
+        Jump    = 1'b0;
         if (isLW) begin
             RegWrite  = 1;
             ALUSrc    = 1;
-            ResultSrc = 1;
+            ResultSrc = 2'b01;
             ImmSrc    = 2'b00;
         end
         else if (isSW) begin
@@ -80,6 +91,12 @@ module Main_decoder (
             ALUSrc   = 1;
             ALU_op   = 2'b10;   // use funct3
             ImmSrc   = 2'b00;  // I-type immediate
+        end
+        else if (isJal) begin
+            RegWrite = 1;
+            ImmSrc   = 2'b11;
+            ResultSrc = 2'b10;
+            Jump = 1'b1;
         end
     end
     

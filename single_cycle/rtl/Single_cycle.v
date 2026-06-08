@@ -35,7 +35,7 @@ module single_cycle(
     //wire for control signals from the control unit
     wire ALU_src;
     wire[2:0] ALU_ctrl;
-    wire Result_src;
+    wire[1:0] Result_src;
     wire Reg_write;
     wire[1:0] ImmSrc;
     wire MemWrite;
@@ -102,7 +102,8 @@ module single_cycle(
     // mux for SrcB
     assign SrcB = (ALU_src)? ImmExtend : Write_data ;
     wire[31:0] Result;
-    assign Result= (Result_src)? Read_data : ALU_result ;
+    //assign Result= (Result_src)? Read_data : ALU_result ;
+    assign Result= (Result_src == 2'b01)? Read_data : (Result_src == 2'b00)? ALU_result : (Result_src == 2'b10)? PCPlus4 : 32'bx;
 
     ALU alu(
         .A(SrcA),
