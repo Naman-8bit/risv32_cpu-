@@ -46,10 +46,7 @@ riscv32_cpu/
 From the project root:
 
 ```bash
-iverilog -g2012 -o cpu \
-  tb/core_tb.v \
-  rtl/core/*.v \
-  rtl/memory/*.v
+iverilog -g2012 -o cpu   tb/tb.v   rtl/core/*.v   rtl/memory/*.v rtl/Single_cycle.v 
 
 vvp cpu
 gtkwave cpu.vcd
