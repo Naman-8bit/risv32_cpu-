@@ -55,6 +55,7 @@ vvp cpu
 gtkwave cpu.vcd
 ---
 ```
+
 ## 🧾 What the Test Program Does
 
 The default `program.hex` verifies:
@@ -65,6 +66,22 @@ The default `program.hex` verifies:
 - `beq` (taken and not taken)
 
 ---
+## ✅ Supported Instructions
+
+| Instruction | Type | Operation |
+|-------------|------|-----------|
+| `addi`      | I    | rd = rs1 + imm |
+| `add`       | R    | rd = rs1 + rs2 |
+| `sub`       | R    | rd = rs1 - rs2 |
+| `and`       | R    | rd = rs1 & rs2 |
+| `or`        | R    | rd = rs1 \| rs2 |
+| `slt`       | R    | rd = (rs1 < rs2) ? 1 : 0 |
+| `lw`        | I    | rd = mem[rs1 + imm] |
+| `sw`        | S    | mem[rs1 + imm] = rs2 |
+| `beq`       | B    | if (rs1 == rs2) PC = PC + imm |
+| `jal`       | J    | rd = PC+4, PC = PC + imm |
+
+---
 
 ## 🔮 Future Plans
 
@@ -72,7 +89,7 @@ The default `program.hex` verifies:
 - [ ] Implement a 5-stage pipelined version
 - [ ] Add a UART-based terminal interface
 - [ ] Support C programs
-- [ ] Add more RV32I instructions (`lui`, `jal`, `jalr`, etc.)
+- [x] Add more RV32I instructions (`lui`, `jal`, `jalr`, etc.) Update: right now supports jal others can be implemented with few manipulations
 - [ ] Run the CPU on FPGA
 
 
