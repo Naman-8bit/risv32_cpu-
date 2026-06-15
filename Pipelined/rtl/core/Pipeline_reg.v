@@ -1,8 +1,10 @@
-// pipeline reg just after the fetch stage
+// all pipeline register bw the stages
 module FD_reg (
     input clk,
-    input rst,//dunno if needed just added here just in case
-    
+    input rst,//dunno if needed just added here just in case update: needed this is the flush logic
+    // need to make a enable signal too 
+    input En, //will be connected to the !stallD
+
     input[31:0] InstrF,
     input[31:0] PCF,
     input[31:0] PCPlus4F,
@@ -17,18 +19,19 @@ module FD_reg (
             PCD<=32'd0;
             PCPlus4D<=32'd0;
         end
-        else begin
+        else if (En) begin
             InstrD<=InstrF;
             PCD<=PCF;
             PCPlus4D<=PCPlus4F;
         end
+        // now if both En and rst is now used it will store the data during the stall
     end
  
 endmodule
 
 module DE_reg (
     input clk,
-    input rst,
+    input rst, // here turns out to be usefull as it will be used as FlushE
 
     input [1:0]  ResultSrcD,
     input ALUSrcD,
