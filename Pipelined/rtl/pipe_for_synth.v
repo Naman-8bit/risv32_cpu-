@@ -1,6 +1,19 @@
+// just for the purpose of using in yosys removed memory modules and then 
+// took some input ports in place 
+
 module pipelined_core (
     input clk,
-    input rst
+    input rst,
+
+    // Instruction Memory Interface
+    input wire [31:0] InstrF,      // Data coming in from I-Mem
+    output reg [31:0] PCF,         // Address going out to I-Mem (Changed to reg)
+    
+    // Data Memory Interface
+    input wire [31:0] ReadDataM,   // Data coming in from D-Mem
+    output wire [31:0] ALUResultM, // Address going out to D-Mem
+    output wire [31:0] WriteDataM, // Data going out to D-Mem
+    output wire MemWriteM          // Write Enable going out to D-Mem
 );
     // code is done stage by stage for easier debugging
 
@@ -8,14 +21,13 @@ module pipelined_core (
     // FETCH STAGE
     // ------------------------------------------------
     wire[31:0] PCF_next;
-    reg[31:0] PCF;
     wire[31:0] PCPlus4F;
-    wire[31:0] RD;
 
     assign PCPlus4F=PCF+32'd4;
 
     // mux for pc source
     assign PCF_next=(PCSrcE)?PCTargetE:PCPlus4F;
+    
     // inline program counter
     always @(posedge clk) begin
         if (rst) begin
@@ -25,14 +37,15 @@ module pipelined_core (
         end
     end
 
-    Instruction_memory instr(
-        .instr(RD),
-        .address(PCF)
-    );
+    // --- MEMORY REMOVED FOR SYNTHESIS ---
+    // Instruction_memory instr(
+    //     .instr(RD),
+    //     .address(PCF)
+    // );
 
     FD_reg reg1(
         .InstrD(InstrD),
-        .InstrF(RD),
+        .InstrF(InstrF), // Routed directly from the input port
 
         .PCD(PCD),
         .PCF(PCF),
@@ -85,7 +98,6 @@ module pipelined_core (
         .RD2(RD2D)
     );
 
-    // Control Unit Instantiation Template
     Control_Unit control(
         .op(InstrD[6:0]),
         .funct3(InstrD[14:12]),
@@ -125,6 +137,7 @@ module pipelined_core (
         .RdD(RdD),
         .ImmExtD(ImmExtD),
         .PCPlus4D(PCPlus4D),
+        
         .ResultSrcE(ResultSrcE),
         .ALUSrcE(ALUSrcE),
         .ALU_ControlE(ALU_ControlE),
@@ -141,6 +154,7 @@ module pipelined_core (
         .ImmExtE(ImmExtE),
         .PCPlus4E(PCPlus4E)
     );
+
     // ------------------------------------------------
     // EXECUTE STAGE
     // ------------------------------------------------
@@ -174,7 +188,6 @@ module pipelined_core (
     wire ZeroE;
 
     assign SrcAE=(ForwardAE[1])?ALUResultM:((ForwardAE[0])?ResultW:RD1E);
-
     assign WriteDataE=(ForwardBE[1])? ALUResultM : ((ForwardBE[0])? ResultW : RD2E);
     assign SrcBE=(ALUSrcE)? ImmExtE : WriteDataE ;
     
@@ -189,10 +202,9 @@ module pipelined_core (
         .oVerflow()
     );
 
-
     EM_reg u_EM_reg (
         .clk(clk),
-        .rst(rst),//not sure if this rst is ever used
+        .rst(rst),
         .RegWriteE(RegWriteE),
         .ResultSrcE(ResultSrcE),
         .MemWriteE(MemWriteE),
@@ -200,6 +212,7 @@ module pipelined_core (
         .WriteDataE(WriteDataE),
         .RdE(RdE),
         .PCPlus4E(PCPlus4E),
+        
         .RegWriteM(RegWriteM),
         .ResultSrcM(ResultSrcM),
         .MemWriteM(MemWriteM),
@@ -214,21 +227,17 @@ module pipelined_core (
     // ------------------------------------------------
     wire RegWriteM;
     wire[1:0] ResultSrcM;
-    wire MemWriteM;
-    wire[31:0] ALUResultM;
-    wire [31:0] WriteDataM; 
     wire [4:0] RdM;
     wire[31:0] PCPlus4M;
 
-    wire[31:0] ReadDataM;
-
-    data_Memory data_mem (
-        .CLK(clk),
-        .WE(MemWriteM),
-        .A(ALUResultM),
-        .WD(WriteDataM),
-        .RD3(ReadDataM)
-    );
+    // --- MEMORY REMOVED FOR SYNTHESIS ---
+    // data_Memory data_mem (
+    //     .CLK(clk),
+    //     .WE(MemWriteM),
+    //     .A(ALUResultM),
+    //     .WD(WriteDataM),
+    //     .RD3(ReadDataM)
+    // );
 
     MW_reg u_MW_reg (
         .clk(clk),
@@ -236,9 +245,10 @@ module pipelined_core (
         .RegWriteM(RegWriteM),
         .ResultSrcM(ResultSrcM),
         .ALUResultM(ALUResultM),
-        .ReadDataM(ReadDataM),
+        .ReadDataM(ReadDataM), // Routed directly from the input port
         .RdM(RdM),
         .PCPlus4M(PCPlus4M),
+        
         .RegWriteW(RegWriteW),
         .ResultSrcW(ResultSrcW),
         .ALUResultW(ALUResultW),
@@ -252,7 +262,7 @@ module pipelined_core (
     // ------------------------------------------------
     wire[31:0] ResultW;
     wire[4:0] RdW;
-    wire RegWriteW;//goes to the decode stage
+    wire RegWriteW;
     wire[1:0] ResultSrcW;
     wire[31:0] PCPlus4W;
     wire[31:0] ReadDataW;
