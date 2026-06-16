@@ -7,7 +7,7 @@ module Instruction_memory (
 
     // read instructions from a file named program.hex that is a hex file
     initial begin
-    $readmemh("program.hex", memory);
+    $readmemh("Program.hex", memory);
     end
 
     //everywhere 31:2 was used but for smaller memory to make sure its in the limits its better to use this as 256 instructions at max 

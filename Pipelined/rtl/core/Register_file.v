@@ -1,6 +1,6 @@
 module Reg_file (
     input wire clk, //clock 
-    input wire rst, // reset its synchronous active low
+    input wire rst, // reset its synchronous active high
     input wire WE3, // write enable
     input wire [4:0] A1, //address 1
     input wire [4:0] A2, //address 2
@@ -21,7 +21,7 @@ module Reg_file (
     integer i;
 
     always @(negedge clk) begin //for pipelined version the reg file sends data at negedge
-        if (!rst) begin
+        if (rst) begin
             for (i = 0; i < 32; i = i + 1)
                 x[i] <= 32'd0;
         end

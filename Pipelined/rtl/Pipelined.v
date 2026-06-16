@@ -7,7 +7,7 @@ module pipelined_core (
     // ------------------------------------------------
     // FETCH STAGE
     // ------------------------------------------------
-    wire[31:0] PC_next;
+    wire[31:0] PCF_next;
     reg[31:0] PCF;
     wire[31:0] PCPlus4F;
     wire[31:0] RD;
@@ -15,7 +15,7 @@ module pipelined_core (
     assign PCPlus4F=PCF+32'd4;
 
     // mux for pc source
-    assign PC_next=(PCSrcE)?PCTargetE:PCPlus4F;
+    assign PCF_next=(PCSrcE)?PCTargetE:PCPlus4F;
 
     always @(posedge clk) begin
         if (rst) begin
@@ -26,8 +26,8 @@ module pipelined_core (
     end
 
     Instruction_memory instr(
-        .instr(PCF),
-        .address(RD)
+        .instr(RD),
+        .address(PCF)
     );
 
     FD_reg reg1(
@@ -41,7 +41,7 @@ module pipelined_core (
         .PCPlus4F(PCPlus4F),
 
         .clk(clk),
-        .rst(FlushD),
+        .rst(FlushD | rst),
         .En(~StallD)
     );
 
@@ -102,14 +102,14 @@ module pipelined_core (
     );
 
     extend ex(
-        .instr(InstrD[31:7]),
+        .instr(InstrD),
         .imm_src(ImmSrcD),
         .imm_ext(ImmExtD)
     );
 
     DE_reg u_DE_reg (
         .clk(clk),
-        .rst(FlushE),
+        .rst(FlushE | rst),
         .ResultSrcD(ResultSrcD),
         .ALUSrcD(ALUSrcD),
         .ALU_ControlD(ALU_ControlD),
@@ -145,7 +145,9 @@ module pipelined_core (
     // EXECUTE STAGE
     // ------------------------------------------------
     wire PCSrcE;
+    assign PCSrcE = (JumpE | (BranchE & ZeroE));
     wire[31:0] PCTargetE;
+    assign PCTargetE=PCE+ImmExtE;
 
     wire [1:0] ResultSrcE;
     wire ALUSrcE;
@@ -163,20 +165,100 @@ module pipelined_core (
     wire [31:0] ImmExtE;
     wire [31:0] PCPlus4E;
 
+    wire[31:0] ALUResultE;
+    wire[31:0] WriteDataE;
+
+    wire[31:0] SrcAE;
+    wire[31:0] SrcBE;
+
+    wire ZeroE;
+
+    assign SrcAE=(ForwardAE[1])?ALUResultM:((ForwardAE[0])?ResultW:RD1E);
+
+    assign WriteDataE=(ForwardBE[1])? ALUResultM : ((ForwardBE[0])? ResultW : RD2E);
+    assign SrcBE=(ALUSrcE)? ImmExtE : WriteDataE ;
+    
+    ALU alu (
+        .A(SrcAE),
+        .B(SrcBE),
+        .ALU_ctrl(ALU_ControlE),
+        .Result(ALUResultE),
+        .Zero(ZeroE),
+        .Negative(),
+        .Carry(),
+        .oVerflow()
+    );
+
+
+    EM_reg u_EM_reg (
+        .clk(clk),
+        .rst(rst),//not sure if this rst is ever used
+        .RegWriteE(RegWriteE),
+        .ResultSrcE(ResultSrcE),
+        .MemWriteE(MemWriteE),
+        .ALUResultE(ALUResultE),
+        .WriteDataE(WriteDataE),
+        .RdE(RdE),
+        .PCPlus4E(PCPlus4E),
+        .RegWriteM(RegWriteM),
+        .ResultSrcM(ResultSrcM),
+        .MemWriteM(MemWriteM),
+        .ALUResultM(ALUResultM),
+        .WriteDataM(WriteDataM),
+        .RdM(RdM),
+        .PCPlus4M(PCPlus4M)
+    );
 
     // ------------------------------------------------
     // MEMORY STAGE
     // ------------------------------------------------
+    wire RegWriteM;
+    wire[1:0] ResultSrcM;
+    wire MemWriteM;
+    wire[31:0] ALUResultM;
+    wire [31:0] WriteDataM; 
+    wire [4:0] RdM;
+    wire[31:0] PCPlus4M;
 
+    wire[31:0] ReadDataM;
 
+    data_Memory data_mem (
+        .CLK(clk),
+        .WE(MemWriteM),
+        .A(ALUResultM),
+        .WD(WriteDataM),
+        .RD3(ReadDataM)
+    );
 
+    MW_reg u_MW_reg (
+        .clk(clk),
+        .rst(rst),
+        .RegWriteM(RegWriteM),
+        .ResultSrcM(ResultSrcM),
+        .ALUResultM(ALUResultM),
+        .ReadDataM(ReadDataM),
+        .RdM(RdM),
+        .PCPlus4M(PCPlus4M),
+        .RegWriteW(RegWriteW),
+        .ResultSrcW(ResultSrcW),
+        .ALUResultW(ALUResultW),
+        .ReadDataW(ReadDataW),
+        .RdW(RdW),
+        .PCPlus4W(PCPlus4W)
+    );
 
     // ------------------------------------------------
     // WRITEBACK STAGE
     // ------------------------------------------------
     wire[31:0] ResultW;
-    reg[4:0] RdW;
-    wire RegWriteW;
+    wire[4:0] RdW;
+    wire RegWriteW;//goes to the decode stage
+    wire[1:0] ResultSrcW;
+    wire[31:0] PCPlus4W;
+    wire[31:0] ReadDataW;
+    wire[31:0] ALUResultW;
+
+    assign ResultW=(ResultSrcW[1])? PCPlus4W : ((ResultSrcW[0])? ReadDataW: ALUResultW);
 
     // ------------------------------------------------
     // Hazard unit
@@ -185,6 +267,27 @@ module pipelined_core (
     wire StallD;
     wire FlushD;
     wire FlushE;
+    wire[1:0] ForwardAE;
+    wire[1:0] ForwardBE;
 
+    Hazard_unit u_Hazard_unit (
+        .Rs1D(Rs1D),
+        .Rs2D(Rs2D),
+        .Rs1E(Rs1E),
+        .Rs2E(Rs2E),
+        .RdE(RdE),
+        .PCSrcE(PCSrcE),
+        .ResultSrcE(ResultSrcE),
+        .RegWriteM(RegWriteM),
+        .RdM(RdM),
+        .RegWriteW(RegWriteW),
+        .RdW(RdW),
+        .FlushD(FlushD),
+        .FlushE(FlushE),
+        .StallD(StallD),
+        .StallF(StallF),
+        .ForwardAE(ForwardAE),
+        .ForwardBE(ForwardBE)
+    );
 
 endmodule
