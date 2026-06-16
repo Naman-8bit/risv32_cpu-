@@ -31,74 +31,84 @@ endmodule
 
 module DE_reg (
     input clk,
-    input rst, // here turns out to be usefull as it will be used as FlushE
+    input rst, // Acts as FlushE
 
+    // Control Signals In
     input [1:0]  ResultSrcD,
-    input ALUSrcD,
-    input [1:0]  ALU_op,
+    input        ALUSrcD,
     input [2:0]  ALU_ControlD,
-    input RegWriteD,
-    input MemWriteD,
-    input JumpD,
-    input BranchD,
-    input [31:0] PCD,
-    input [31:0] PCPlus4D,
-    input [4:0]  RdD,
-    input [31:0] ImmExtD,
+    input        RegWriteD,
+    input        MemWriteD,
+    input        JumpD,
+    input        BranchD,
+    
+    // Datapath Signals In
     input [31:0] RD1D,
     input [31:0] RD2D,
+    input [31:0] PCD,
+    input [4:0]  Rs1D,
+    input [4:0]  Rs2D,
+    input [4:0]  RdD,
+    input [31:0] ImmExtD,
+    input [31:0] PCPlus4D,
 
-
+    // Control Signals Out
     output reg [1:0]  ResultSrcE,
-    output reg ALUSrcE,
-    output reg [1:0]  ALU_opE,
+    output reg        ALUSrcE,
     output reg [2:0]  ALU_ControlE,
-    output reg RegWriteE,
-    output reg MemWriteE,
-    output reg JumpE,
-    output reg BranchE,
+    output reg        RegWriteE,
+    output reg        MemWriteE,
+    output reg        JumpE,
+    output reg        BranchE,
+    
+    // Datapath Signals Out
+    output reg [31:0] RD1E,
+    output reg [31:0] RD2E,
     output reg [31:0] PCE,
-    output reg [31:0] PCPlus4E,
+    output reg [4:0]  Rs1E,
+    output reg [4:0]  Rs2E,
     output reg [4:0]  RdE,
     output reg [31:0] ImmExtE,
-    output reg [31:0] RD1E,
-    output reg [31:0] RD2E
+    output reg [31:0] PCPlus4E
 );
+
     always @(posedge clk) begin
         if (rst) begin
-            // Clear all registers on reset
-            ResultSrcE <= 2'b00;
-            ALUSrcE <= 1'b0;
-            ALU_opE <= 2'b00;
+            // Clear all registers on reset/flush
+            ResultSrcE   <= 2'b00;
+            ALUSrcE      <= 1'b0;
             ALU_ControlE <= 3'b000;
-            RegWriteE <= 1'b0;
-            MemWriteE <= 1'b0;
-            JumpE <= 1'b0;
-            BranchE <= 1'b0;
+            RegWriteE    <= 1'b0;
+            MemWriteE    <= 1'b0;
+            JumpE        <= 1'b0;
+            BranchE      <= 1'b0;
 
-            PCE <= 32'b0;
-            PCPlus4E <= 32'b0;
-            RdE <= 5'b0;
-            ImmExtE <= 32'b0;
-            RD1E <= 32'b0;
-            RD2E <= 32'b0;
+            RD1E         <= 32'b0;
+            RD2E         <= 32'b0;
+            PCE          <= 32'b0;
+            Rs1E         <= 5'b0;
+            Rs2E         <= 5'b0;
+            RdE          <= 5'b0;
+            ImmExtE      <= 32'b0;
+            PCPlus4E     <= 32'b0;
         end else begin
             // Pass Decode signals to Execute stage
-            ResultSrcE <= ResultSrcD;
-            ALUSrcE <= ALUSrcD;
-            ALU_opE <= ALU_op;
+            ResultSrcE   <= ResultSrcD;
+            ALUSrcE      <= ALUSrcD;
             ALU_ControlE <= ALU_ControlD;
-            RegWriteE <= RegWriteD;
-            MemWriteE <= MemWriteD;
-            JumpE <= JumpD;
-            BranchE <= BranchD;
+            RegWriteE    <= RegWriteD;
+            MemWriteE    <= MemWriteD;
+            JumpE        <= JumpD;
+            BranchE      <= BranchD;
 
-            PCE <= PCD;
-            PCPlus4E <= PCPlus4D;
-            RdE <= RdD;
-            ImmExtE <= ImmExtD;
-            RD1E <= RD1D;
-            RD2E <= RD2D;
+            RD1E         <= RD1D;
+            RD2E         <= RD2D;
+            PCE          <= PCD;
+            Rs1E         <= Rs1D;
+            Rs2E         <= Rs2D;
+            RdE          <= RdD;
+            ImmExtE      <= ImmExtD;
+            PCPlus4E     <= PCPlus4D;
         end
     end
 
